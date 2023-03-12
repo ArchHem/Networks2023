@@ -14,7 +14,8 @@
 
 import numpy as np
 
-def logbin(data, scale = 1., zeros = False):
+def logbin(data, scale = 1., zeros = False, actual_zeros = True):
+
     """
     logbin(data, scale = 1., zeros = False)
 
@@ -90,6 +91,8 @@ def logbin(data, scale = 1., zeros = False):
             x = x[1:]
             y = y[1:]
     y /= tot
-    x = x[y!=0]
-    y = y[y!=0]
-    return x,y
+
+    if actual_zeros:
+        x = x[y!=0]
+        y = y[y!=0]
+    return x,y,binedges
