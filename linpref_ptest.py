@@ -4,7 +4,7 @@
 
 from network_OOP import *
 
-N_t = 70000
+N_t = 50000
 m = 3
 NR = 20
 cutoff = 55

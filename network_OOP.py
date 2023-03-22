@@ -5,6 +5,7 @@ from random import choice
 import matplotlib.pyplot as plt
 from logbin_2020 import logbin
 import scipy.stats as scstat
+from scipy.optimize import root
 
 class Network:
     def __init__(self,init_state):
@@ -119,6 +120,21 @@ def max_mean_k(N,m):
 
     return m*N**(0.5)
 
+def precise_max_predictor(N,m):
+    k1 = 0.5 * (np.sqrt(4*N*(m+1)*m+1)-1)
+
+    return k1
+
+def precise_int_predictor(N,m):
+    A = 2*m*(m+1)
+
+    def to_solve(k1):
+        return A*N*(-np.log(k1+2)/2+np.log(k1+1)-np.log(k1)/2)-1
+
+    solution = root(to_solve,x0=m*N**0.5)
+
+    return solution.x
+
 def norm_factors(N_time,m):
 
     k1 = max_mean_k(N_time,m)
@@ -178,7 +194,11 @@ def preferential_test(N_runs,N_time,m,a=1.2,cutoff = False,axplot = plt,init='wi
         expected_freq.append(np.sum(locdistr(np.array(binindices[:-1])))/(binindices[-1]-binindices[0]))
 
     expected_freq = np.array(expected_freq)
+
     with np.errstate(divide='ignore', invalid='ignore'):
+        if cutoff!=False:
+            expected_freq = expected_freq/np.sum(expected_freq[rx < cutoff])
+            mean_event_freq = mean_event_freq/np.sum(mean_event_freq[rx < cutoff])
         to_sum = ((expected_freq-mean_event_freq)**2 / mean_event_seom**2)[mean_event_seom!=0]
 
 
@@ -204,23 +224,60 @@ def preferential_test(N_runs,N_time,m,a=1.2,cutoff = False,axplot = plt,init='wi
     axplot.plot(rx,2*m*(m+1)/(rx*(rx+1)*(rx+2)),
                 label='Predicted probability extended to continuous domain, m=%.0f' %(m),color='orange',
                 lw=1.2)
+
     axplot.set_yscale('log')
     axplot.set_xscale('log')
+
     axplot.grid()
     axplot.legend()
+
     P_value = p_value(chi2,df)
 
     return P_value
 
-def tallwide_t_test(N_runs,N_time,m,a=1.2,cutoff = 55,axplot = plt):
+def system_averager(N_runs, N_time, m, scale = 1.2):
+    k1 = []
+    ys = []
+    xmax = []
+    for i in range(N_runs):
+        locnet = generate_fully_connected(m)
+        locnet.lin_pref_time_evul(N_time, m)
+        ks = locnet.edge_list_gen()
+        max_k = np.amax(ks)
+        k1.append(max_k)
+        x,y,bins = logbin(ks,scale=scale,actual_zeros=False)
+        if len(xmax) < len(x):
+            xmax = x
+        ys.append(y)
+
+    for i in range(N_runs):
+        diff = -len(ys[i])+len(xmax)
+        if diff !=0:
+            ys[i] = np.hstack((ys[i],np.zeros(diff,)))
+
+    ys = np.array(ys)
+
+    k1 = np.array(k1)
+
+    mean_max = np.average(k1)
+    mean_std = np.std(k1) / np.sqrt(N_runs)
+    avg_y = np.mean(ys,axis=0)
+    std_y = np.std(ys,axis=0)/np.sqrt(N_runs)
+
+    return xmax, avg_y, std_y, mean_max, mean_std
+
+def tallwide_t_test(N_runs,N_time,m,a=1.2,cutoff = 55,tall_num=None,axplot = plt):
     k_arrw = []
     k_arrt = []
     fbin = []
     rx = []
 
+    if tall_num == None:
+        tall_num = m
+
     for i in range(N_runs):
         model_wide = generate_fully_connected(m)
-        model_tall = generate_tall(m)
+        model_tall = generate_tall(tall_num)
         model_tall.lin_pref_time_evul(N_time, m)
         model_wide.lin_pref_time_evul(N_time, m)
         loc_kst = model_tall.edge_list_gen()
@@ -238,7 +295,7 @@ def tallwide_t_test(N_runs,N_time,m,a=1.2,cutoff = 55,axplot = plt):
         k_arrt.append(event_freqt)
 
     longest = max([j.shape[0] for j in k_arrw]+[i.shape[0] for i in k_arrt])
-
+    closest_index = np.argmax(np.where(rx < cutoff,rx,-1))
 
     for j in range(len(k_arrw)):
         k_arrw[j] = np.hstack((k_arrw[j], np.zeros(longest - k_arrw[j].shape[0])))
@@ -246,10 +303,13 @@ def tallwide_t_test(N_runs,N_time,m,a=1.2,cutoff = 55,axplot = plt):
     for j in range(len(k_arrt)):
         k_arrt[j] = np.hstack((k_arrt[j],np.zeros(longest - k_arrt[j].shape[0])))
 
+
     k_arrt = np.array(k_arrt)
     k_arrw = np.array(k_arrw)
 
-    closest_index = np.argmax(np.where(rx < cutoff,rx,-1))
+    k_arrt = k_arrt/np.expand_dims(np.sum(k_arrt[:,:closest_index+1],axis=1),axis=0).T
+    k_arrw = k_arrw / np.expand_dims(np.sum(k_arrw[:, :closest_index + 1],axis=1),axis=0).T
+
 
     kt_avg = np.average(k_arrt,axis=0)
     kt_std = np.std(k_arrt,axis=0)/np.sqrt(N_runs)
@@ -284,9 +344,71 @@ def max_k_numeric(Nt,m,N_runs):
 
     return mean_max, mean_std
 
-def
+def random_p_tester(N_runs,NV,E,axplot,a=1, cutoff = np.inf):
+
+    def loc_distr(k,NV,E):
+        k = k.astype('int64')
+        p = E/((NV-1)*NV/2)
+        y = scstat.binom.pmf(k,NV,p)
+        return y
+
+    lx = []
+    fbin = []
+    ys = []
+
+    for j in range(N_runs):
+        locnet = generate_empty(NV)
+        locnet.generate_random(E)
+        lock = locnet.edge_list_gen()
+        x, y, edges = logbin(lock,a,actual_zeros=False)
+        if len(lx)<len(x):
+            lx = x
+            fbin = edges
+        ys.append(y)
 
 
+    maxlength = len(lx)
+    for i in range(N_runs):
+        diff = maxlength-len(ys[i])
+        if diff != 0:
+            ys[i] = np.hstack((ys[i],np.zeros((diff,))))
+
+    avgy = np.mean(ys,axis=0)
+    stdy = np.std(ys,axis=0)
+
+    """generate expected frequencies"""
+
+    fbin = fbin.astype('int64')
+    theoretical =[]
+
+    for j in range(len(fbin)-1):
+
+        indices = np.arange(fbin[j],fbin[j+1],1,dtype='int64')
+        length = fbin[j+1]-fbin[j]
+        theoretical.append(np.sum(loc_distr(indices,NV,E))/length)
+
+    theoretical = np.array(theoretical)
+
+    chi2 = np.sum(((theoretical-avgy)/stdy)**2)
+
+    p = p_value(chi2,len(stdy)-3)
+
+    print('Chi2 = %.3f, degrees of freedom = %.0f' %(chi2,len(stdy)-3))
+
+    axplot.errorbar(lx,avgy,ls='None', marker='x',capsize = 5, color='red',yerr = stdy,
+                    label='Measured mean via binned data, N = %.0f and E = %.0f' %(NV,E))
+    """axplot.set_yscale('log')
+    axplot.set_xscale('log')"""
+    axplot.set_xlabel('k')
+    axplot.set_ylabel('Normalized event frequency')
+
+    axplot.scatter(lx,theoretical,s=10,color='green',label='Theoretical binomial event'
+                ' frequencies for N = %.0f and E = %.0f'%(NV,E))
+
+    axplot.grid()
+    axplot.legend()
+
+    return p
 
 if __name__ == "__main__":
     N_t = 20000

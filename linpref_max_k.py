@@ -1,11 +1,11 @@
 from network_OOP import *
 
 
-"""We choose m = 4 as it allows us to get away with relatively small number of runs."""
+"""We choose m = 3 as it allows us to get away with relatively small number of runs."""
 
-mloc = 4
-N_avg = 30
-N_t = 1000*np.arange(1,5+1,1,dtype='int64')**2
+mloc = 3
+N_avg = 20
+N_t = 1000*np.array([2**i for i in range(6)])
 
 locfig, locax = plt.subplots()
 
@@ -18,16 +18,30 @@ for i in N_t:
 mean_k = np.array(mean_k)
 mean_k_std = np.array(mean_k_std)
 
-plot_t = np.linspace(np.amin(N_t),np.amax(N_t),10000)
-theoretical_max = max_mean_k(plot_t,mloc)
+plot_t = np.linspace(np.amin(N_t),np.amax(N_t),500)
+theoretical_max = precise_max_predictor(plot_t,mloc)
+precise_theory = precise_int_predictor(plot_t,mloc)
+
 
 locax.errorbar(N_t,mean_k,yerr=mean_k_std,ls='None',capsize=6,marker='x',color='red',
-               label='Numerically measured mean max k')
-locax.plot(plot_t,plot_t,lw=0.7,color='red',ls='--',label='Finite, sum-based model')
+               label='Numerically measured mean max k, number of realizations is: %.0f' %N_avg)
+
+locax.plot(plot_t, theoretical_max,lw=1.8,color='cyan',ls='--',label='Finite, sum-based prediction')
+locax.plot(plot_t, mloc*plot_t**(0.5),color='green',ls='--',lw=1.8,label='Integral estimate based prediction')
+locax.plot(plot_t, precise_theory,color='black',ls='--',lw=1.8,label='Higher-order integral estimate')
+
 locax.set_ylabel('Max mean k')
 locax.set_xlabel('Running time (iterations)')
 locax.set_yscale('log')
 locax.set_xscale('log')
+
+chi2_sum = np.sum(((mean_k-precise_max_predictor(N_t,mloc))/mean_k_std)**2)
+chi2_int = np.sum(((mean_k-mloc*N_t**0.5)/mean_k_std)**2)
+
+print('Chi2 value of integral-based prediction: %.3f' %chi2_int)
+print('Chi2 value of sum-based prediction: %.3f' %chi2_sum)
+print('Degrees of freedom: %.0f'%(len(N_t)-3))
+
 locax.grid()
 locax.legend()
 plt.show()

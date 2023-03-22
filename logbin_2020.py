@@ -14,7 +14,7 @@
 
 import numpy as np
 
-def logbin(data, scale = 1., zeros = False, actual_zeros = True):
+def logbin(data, scale = 1., zeros = False, actual_zeros = True,step=1):
 
     """
     logbin(data, scale = 1., zeros = False)
@@ -85,11 +85,12 @@ def logbin(data, scale = 1., zeros = False, actual_zeros = True):
         # print(smax,jmax,binedges,x)
         # print(x,y)
     else:
-        x = np.nonzero(count)[0]
-        y = count[count != 0].astype('float')
-        if zeros != True and x[0] == 0:
-            x = x[1:]
-            y = y[1:]
+        largest = np.amax(data)
+        smallest = np.amin(data)
+        binedges = np.arange(0,largest+1,1,dtype='int64')
+        x = (binedges[1:]+binedges[:-1])/2
+        y, binedges = np.histogram(data,bins=binedges)
+        y = y.astype('float')
     y /= tot
 
     if actual_zeros:
