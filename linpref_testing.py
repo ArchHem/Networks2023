@@ -19,7 +19,7 @@ m = 3
 Nt = 60000
 
 cutoff = 55
-val, xt, kta, kto, xw, kwa, kwo = tallwide_t_test(10,Nt,m,cutoff=cutoff)
+val, xt, kta, kto, xw, kwa, kwo = tallwide_t_test(10,Nt,m,cutoff=cutoff,tall_num=2*m)
 print('The approximate bin-wise p-values are: ', val)
 
 tax.errorbar(xt,kta,ls='None',color='green',marker='x',yerr=kto,capsize = 3,label='Initially tall network')

@@ -79,13 +79,6 @@ class Network:
             self.estabilish_connection(correct_indices[0][i],correct_indices[1][i])
 
 
-
-
-
-
-
-
-
 def generate_fully_connected(m):
     state_list = []
 
@@ -103,7 +96,6 @@ def generate_empty(N):
     return network
 
 def generate_tall(m):
-
     state_list = [[i for i in range(1,m)]]
 
     for j in range(1,m):
@@ -324,7 +316,8 @@ def tallwide_t_test(N_runs,N_time,m,a=1.2,cutoff = 55,tall_num=None,axplot = plt
                         kw_avg[:closest_index+1]/np.sum(kw_avg[:closest_index+1]))/\
                         np.sqrt(kt_std[:closest_index+1]**2 + kw_std[:closest_index+1]**2)
     df = N_runs-1-2
-    p_val = scstat.t.sf(t_test_val,df=df)
+    """Test is two tailed - we dont know which group is 'better'. Use symetry."""
+    p_val = 2*scstat.t.sf(t_test_val,df=df)
 
     return p_val, x_t, kt_avg, kt_std, x_w, kw_avg, kw_std
 
@@ -388,8 +381,8 @@ def random_p_tester(N_runs,NV,E,axplot,a=1, cutoff = np.inf):
         theoretical.append(np.sum(loc_distr(indices,NV,E))/length)
 
     theoretical = np.array(theoretical)
-
-    chi2 = np.sum(((theoretical-avgy)/stdy)**2)
+    to_sum = ((theoretical-avgy)/stdy)**2
+    chi2 = np.sum(to_sum[stdy!=0])
 
     p = p_value(chi2,len(stdy)-3)
 
@@ -409,6 +402,14 @@ def random_p_tester(N_runs,NV,E,axplot,a=1, cutoff = np.inf):
     axplot.legend()
 
     return p
+
+def random_largest_degree_numeric(NR,E,N):
+
+    maxx = []
+    for i in range(NR):
+        lmod = generate_empty(N)
+
+
 
 if __name__ == "__main__":
     N_t = 20000

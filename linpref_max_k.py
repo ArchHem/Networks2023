@@ -1,5 +1,5 @@
 from network_OOP import *
-
+from scipy.optimize import curve_fit
 
 """We choose m = 3 as it allows us to get away with relatively small number of runs."""
 
@@ -22,9 +22,13 @@ plot_t = np.linspace(np.amin(N_t),np.amax(N_t),500)
 theoretical_max = precise_max_predictor(plot_t,mloc)
 precise_theory = precise_int_predictor(plot_t,mloc)
 
+def power_law(x,c,beta):
+    return c*x**beta
 
 locax.errorbar(N_t,mean_k,yerr=mean_k_std,ls='None',capsize=6,marker='x',color='red',
                label='Numerically measured mean max k, number of realizations is: %.0f' %N_avg)
+
+
 
 locax.plot(plot_t, theoretical_max,lw=1.8,color='cyan',ls='--',label='Finite, sum-based prediction')
 locax.plot(plot_t, mloc*plot_t**(0.5),color='green',ls='--',lw=1.8,label='Integral estimate based prediction')

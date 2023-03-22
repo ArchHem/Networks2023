@@ -2,7 +2,7 @@ from network_OOP import *
 
 fifr, axr = plt.subplots()
 """Number of realizations"""
-N_R = 20
+N_R = 40
 N1 = 10000
 E1 = 40000
 p_random = random_p_tester(N_R,N1,E1,axr,a=1.0)
