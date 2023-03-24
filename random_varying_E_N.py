@@ -5,30 +5,26 @@ from network_OOP import *
 
 locfig, locax = plt.subplots()
 
-def loc_distr(k, NV, E):
-    k = k.astype('int64')
-    p = E / ((NV - 1) * NV / 2)
-    y = scstat.binom.pmf(k, NV, p)
-    return y
+NT = 1000*np.array([2**i for i in range(3,5)])
+m = np.array([4,8,16])
+NR = 10
 
-E = 1000*np.array([2**i for i in range(2,5)])
-N = np.array([5000,20000])
+for i in range(len(NT)):
+    for j in range(len(m)):
+        lx, avgy, stdy, maxk, maxk_std = random_system_averager(NR,NT[i],m[j])
+        locax.errorbar(lx,avgy,marker = 'x',color = (0,1-j/len(m),1-i/len(NT)),
+                       label='m = %.0f, T = %.0f, number of realizations = %.0f' %(m[j],NT[i],NR),
+                       yerr = stdy,capsize = 5,ls='None')
+        if i == 0:
+            locax.plot(lx, theoretical_random(lx,m[j]),
+                          ls='--', color=(0, 1 - j / len(m), 1 - i / len(NT)),
+                       label= 'Theoretical extended to continuous domain for m = %.0f' %(m[j]))
 
-
-for i in range(len(E)):
-    for j in range(len(N)):
-        locmodel = generate_empty(N[j])
-        locmodel.generate_random(E[i])
-        kl = locmodel.edge_list_gen()
-        xl, yl, binl = logbin(kl,scale=1.0,actual_zeros=False)
-        locax.scatter(xl,yl,marker = 'x',color = (1,1-j/len(E),1-i/len(N)),label='N = %.0f, E = %.0f' %(N[j],E[i]))
-        locax.plot(xl, loc_distr(xl.astype('int'), N[j], E[i]),
-                      ls='--', color=(1, 1 - j / len(E), 1 - i / len(N)),
-                   label= 'Binomial for N = %.0f, E = %.0f' %(N[j],E[i]))
-
-
+locax.set_xlim(1,100)
+locax.set_yscale('log')
+locax.set_xscale('log')
 locax.set_xlabel('k')
-locax.set_ylabel('Normalized frequencies.')
+locax.set_ylabel('Normalized frequencies')
 locax.grid()
 locax.legend()
 plt.show()

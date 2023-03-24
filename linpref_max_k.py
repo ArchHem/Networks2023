@@ -34,8 +34,8 @@ locax.plot(plot_t, theoretical_max,lw=1.8,color='cyan',ls='--',label='Finite, su
 locax.plot(plot_t, mloc*plot_t**(0.5),color='green',ls='--',lw=1.8,label='Integral estimate based prediction')
 locax.plot(plot_t, precise_theory,color='black',ls='--',lw=1.8,label='Higher-order integral estimate')
 
-locax.set_ylabel('Max mean k')
-locax.set_xlabel('Running time (iterations)')
+locax.set_ylabel(r'$k_1$')
+locax.set_xlabel('T')
 locax.set_yscale('log')
 locax.set_xscale('log')
 

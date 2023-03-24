@@ -6,6 +6,9 @@ import matplotlib.pyplot as plt
 from logbin_2020 import logbin
 import scipy.stats as scstat
 from scipy.optimize import root
+import scipy.special as scspecial
+plt.rcParams.update({'font.size': 16,'axes.labelsize': 28,
+         'axes.titlesize': 32})
 
 class Network:
     def __init__(self,init_state):
@@ -53,6 +56,43 @@ class Network:
         for j in correct_indices:
             self.estabilish_connection(j)
 
+    def random_connecter(self,m):
+        self.append_vertex()
+        index_list = [j for j in range(len(self.state) - 1)]
+        correct_indices = np.random.choice(index_list,size=m,replace=False)
+        for j in correct_indices:
+            self.estabilish_connection(j)
+
+    def existing_connecter(self,m,r):
+        self.append_vertex()
+        index_list = [j for j in range(len(self.state) - 1)]
+        correct_indices = np.random.choice(index_list, size=r, replace=False)
+        total_edges_double = 2 * self.get_edge_count()
+        local_edge_count = self.edge_list_gen()[:-1]
+
+        for j in correct_indices:
+            self.estabilish_connection(j)
+
+
+        """do the linear preferential for the rest"""
+        linpref_pairs = []
+        while len(linpref_pairs) <(m-r):
+            selected_index1 = np.random.choice(index_list,size=1,
+                                           p=np.asarray(local_edge_count)/total_edges_double,replace=False)[0]
+
+            selected_index2 = np.random.choice(index_list,size=1,
+                                           p=np.asarray(local_edge_count)/total_edges_double,replace=False)[0]
+            pair = {selected_index1,selected_index2}
+            if pair not in linpref_pairs and len(pair)==2:
+                linpref_pairs.append(pair)
+
+        linpref_pairs = [list(i) for i in linpref_pairs]
+
+        for i in range(len(linpref_pairs)):
+            self.estabilish_connection(linpref_pairs[i][0],linpref_pairs[i][1])
+
+
+
     def is_connected(self,vfrom,vto):
         state = vfrom in self.state[vto]
         return state
@@ -61,23 +101,13 @@ class Network:
         for t in tqdm(range(NT)):
             self.lin_pref_connecter(m)
 
-    def generate_random(self,E):
-        N = len(self.state)
-        indeces = np.arange(0,(N*(N-1)/2),1)
-        bool_index = np.random.choice(indeces,size=(E,),replace=False).astype('int64')
-        connected_ = np.zeros((int(N*(N-1)/2)))
-        connected_[bool_index] = 1
+    def generate_random(self,NT,m):
+        for t in tqdm(range(NT)):
+            self.random_connecter(m)
 
-        out = np.zeros((N, N))
-        inds = np.triu_indices(len(out),k=1)
-        out[inds] = connected_
-        out = out.astype('int16')
-        correct_indices = np.where(out == 1)
-        """generate network via estabilishing connections"""
-
-        for i in range(correct_indices[0].shape[0]):
-            self.estabilish_connection(correct_indices[0][i],correct_indices[1][i])
-
+    def hybrid_time_evul(self,NT,m,r):
+        for t in tqdm(range(NT)):
+            self.existing_connecter(m,r)
 
 def generate_fully_connected(m):
     state_list = []
@@ -209,7 +239,8 @@ def preferential_test(N_runs,N_time,m,a=1.2,cutoff = False,axplot = plt,init='wi
 
     print('Degrees of freedom: ', df)
 
-    axplot.scatter(rx,expected_freq,color='green',label='Predicted event frequencies',s=25)
+    axplot.scatter(rx,expected_freq,color='green',
+                   label='Predicted event frequencies for m= %.0f, T= %.0f, %.0f realizations' %(m,N_runs,N_runs),s=25)
     axplot.errorbar(rx,mean_event_freq,color='red',
                     label='Measured event frequencies',ls='None',yerr=mean_event_seom,lw=1.2,
                     marker='x',capsize=3)
@@ -337,21 +368,22 @@ def max_k_numeric(Nt,m,N_runs):
 
     return mean_max, mean_std
 
-def random_p_tester(N_runs,NV,E,axplot,a=1, cutoff = np.inf):
+def theoretical_random(k,m):
 
-    def loc_distr(k,NV,E):
-        k = k.astype('int64')
-        p = E/((NV-1)*NV/2)
-        y = scstat.binom.pmf(k,NV,p)
-        return y
+    y = m**(k-m)/(1+m)**(1+k-m)
+    y[k < m] = 0
+    return y
+
+
+def random_p_tester(N_runs,NT,m,axplot,a=1, cutoff = np.inf):
 
     lx = []
     fbin = []
     ys = []
 
     for j in range(N_runs):
-        locnet = generate_empty(NV)
-        locnet.generate_random(E)
+        locnet = generate_fully_connected(m)
+        locnet.generate_random(NT,m)
         lock = locnet.edge_list_gen()
         x, y, edges = logbin(lock,a,actual_zeros=False)
         if len(lx)<len(x):
@@ -371,73 +403,143 @@ def random_p_tester(N_runs,NV,E,axplot,a=1, cutoff = np.inf):
 
     """generate expected frequencies"""
 
-    fbin = fbin.astype('int64')
     theoretical =[]
 
     for j in range(len(fbin)-1):
 
-        indices = np.arange(fbin[j],fbin[j+1],1,dtype='int64')
+        indices = np.arange(fbin[j],fbin[j+1],1)
         length = fbin[j+1]-fbin[j]
-        theoretical.append(np.sum(loc_distr(indices,NV,E))/length)
+        theoretical.append(np.sum(theoretical_random(indices,float(m)))/length)
 
     theoretical = np.array(theoretical)
-    to_sum = ((theoretical-avgy)/stdy)**2
-    chi2 = np.sum(to_sum[stdy!=0])
+    with np.errstate(divide='ignore', invalid='ignore'):
+        to_sum = ((theoretical-avgy)/stdy)**2
+    to_sum = to_sum[(to_sum < cutoff) & (stdy !=0)]
+    chi2 = np.sum(to_sum)
 
-    p = p_value(chi2,len(stdy)-3)
+    p = p_value(chi2,len(to_sum)-3)
 
     print('Chi2 = %.3f, degrees of freedom = %.0f' %(chi2,len(stdy)-3))
 
     axplot.errorbar(lx,avgy,ls='None', marker='x',capsize = 5, color='red',yerr = stdy,
-                    label='Measured mean via binned data, N = %.0f and E = %.0f' %(NV,E))
-    """axplot.set_yscale('log')
-    axplot.set_xscale('log')"""
+                    label='Measured mean via binned data, T = %.0f and m = %.0f' %(NT,m))
+
     axplot.set_xlabel('k')
     axplot.set_ylabel('Normalized event frequency')
+    axplot.set_yscale('log')
+    axplot.set_xscale('log')
 
-    axplot.scatter(lx,theoretical,s=10,color='green',label='Theoretical binomial event'
-                ' frequencies for N = %.0f and E = %.0f'%(NV,E))
+    axplot.scatter(lx,theoretical,s=20,color='green',label='Theoretical event'
+                ' frequencies for T = %.0f and m = %.0f'%(NT,m),zorder = 20)
 
     axplot.grid()
     axplot.legend()
 
     return p
 
-def random_largest_degree_numeric(NR,E,N):
+def random_system_averager(NR,Nt,m,a=1.2):
+    lx = []
+    fbin = []
+    ys = []
+    maxes = []
+    for j in range(NR):
+        locnet = generate_fully_connected(m)
+        locnet.generate_random(Nt, m)
+        lock = locnet.edge_list_gen()
+        x, y, edges = logbin(lock, a, actual_zeros=False)
+        if len(lx) < len(x):
+            lx = x
+            fbin = edges
+        ys.append(y)
+        maxes.append(np.amax(lock))
+
+    maxlength = len(lx)
+    for i in range(NR):
+        diff = maxlength - len(ys[i])
+        if diff != 0:
+            ys[i] = np.hstack((ys[i], np.zeros((diff,))))
+
+    avgy = np.mean(ys, axis=0)
+    stdy = np.std(ys, axis=0)
+
+    maxes = np.array(maxes)
+
+    maxk = np.average(maxes)
+    maxk_std = np.std(maxes)/np.sqrt(NR)
+
+    return lx, avgy, stdy, maxk, maxk_std
+
+def random_sum_maximum_degree(N,m):
+
+    return m - np.log(N)/(np.log(m)-np.log(m+1))
+
+def random_int_maximum_degree(N,m):
+
+    def to_solve(k):
+
+        return ((m+1)**(m-1)*np.exp(np.log(m)*k-np.log(m+1)*k))/(m**m*(np.log(m+1)-np.log(m)))-1/N
+
+    sol = scipy.optimize.root(to_solve,random_sum_maximum_degree(N,m))
+
+    return sol.x
+
+def normalize(x,bins= None):
+    if bins == None:
+        return x/np.sum(x)
+    else:
+        return x/np.sum(x*np.diff(bins))
+
+
+def hybrid_distribution(k,m,r):
+
+    def to_exp(k,m,r):
+        b = m / (m - r)
+        return scspecial.loggamma(k+r*b) - scspecial.loggamma(k+1+r*b+b)
+
+    A = (1/((m-r)*r/m + r +1))/np.exp(to_exp(r,m,r))
+
+
+    return A*np.exp(to_exp(k,m,r))
+
+def hybrid_system_averager(NR,NT,m,r,scale,m_init = None):
+    if m_init == None:
+        m_init = m
 
     maxx = []
+    maxk = []
+    ys = []
+    fbins=[]
+
     for i in range(NR):
-        lmod = generate_empty(N)
+        model = generate_fully_connected(m_init)
+        model.hybrid_time_evul(NT,m,r)
+        kl = model.edge_list_gen()
+        maxk.append(kl)
+        x, y, bins = logbin(kl,scale =scale,actual_zeros=False)
+        if len(x)>len(maxx):
+            maxx = x
+            fbins = bins
+        ys.append(y)
+
+    for i in range(NR):
+        diff = len(maxx)-len(ys[i])
+        if diff!=0:
+            ys[i] = np.hstack((ys[i],np.zeros((diff))))
+
+    ys = np.array(ys)
+    maxk = np.array(maxk)
+
+    avgy = np.average(ys,axis=0)
+    avgy_std = np.std(ys,axis=0)/np.sqrt(NR)
+
+    maxkavg = np.average(maxk)
+    maxk_std = np.std(maxk)/np.sqrt(NR)
+
+    return maxx, avgy, avgy_std, maxkavg, maxk_std,fbins
 
 
 
-if __name__ == "__main__":
-    N_t = 20000
-    m = 3
-    NR = 30
-    cutoff = 55
-    ofig, oax = plt.subplots()
-    sfig, sax = plt.subplots()
-    print(preferential_test(NR,N_t,m,cutoff=cutoff,a=1.2,axplot=sax))
-    N = 10000
-    E = 40000
-    netw1 = generate_empty(N)
-    netw1.generate_random(E)
-    ks = netw1.edge_list_gen()
-    p = E/(N*(N-1)/2)
-    x,y,edges = logbin(ks,scale=1.2)
-    mu = p*N
-    plotx = np.arange(int(np.amin(x)),int(np.amax(x))+1,1,dtype='int64')
-    oax.plot(plotx,scipy.stats.poisson.pmf(plotx,10000*p))
-    oax.scatter(x,y)
-    oax.set_yscale('log')
-    oax.set_xscale('log')
-
-
-plt.show()
-
-
-
+    
 
 
 

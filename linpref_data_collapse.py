@@ -27,7 +27,7 @@ k_plot = np.linspace(0.01,1,1000)
 locax.grid()
 locax.set_yscale('log')
 locax.set_xscale('log')
-locax.set_ylabel(r'$\frac{P(k)}{P(k)_{\infty}}$')
+locax.set_ylabel(r"$\frac{P(k')}{P(k')_{\infty}}$")
 locax.set_xlabel(r"$k'=\frac{k}{k_{1}}}$")
 
 locax.legend()
