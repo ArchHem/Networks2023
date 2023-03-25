@@ -4,7 +4,7 @@ from network_OOP import *
 NR = 2
 NT = 10000
 m = np.array([3**i for i in range(1,4)])
-r = m/3
+r = (m/3).astype('int64')
 scale = 1.2
 
 hfig, hax = plt.subplots()
@@ -18,7 +18,7 @@ for i in range(len(m)):
                  label='Maximum detected mean degree for existing vertices model, m=%.0f' %m[i],marker='x')
     nax.errorbar(maxx,avgy,yerr=avgy_std,capsize=5,ls='None',marker='x',
                  label='Existing vertices degree distribution, m = %.0f'%m[i])
-    hax.errorbar(maxx/maxkavg,yerr = maxk_std/normalize(hybrid_distribution(maxx,m[i],r[i])),
+    hax.errorbar(maxx/maxkavg,avgy/hybrid_distribution(maxx,m[i],r[i]),yerr = maxk_std/normalize(hybrid_distribution(maxx,m[i],r[i])),
                  xerr=maxk_std/maxkavg**2,ls='None', marker='x',
                  label='Data collapsed, existing vertices degree distribution, m = %.0f'%m[i])
 

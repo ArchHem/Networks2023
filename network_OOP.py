@@ -399,7 +399,7 @@ def random_p_tester(N_runs,NT,m,axplot,a=1, cutoff = np.inf):
             ys[i] = np.hstack((ys[i],np.zeros((diff,))))
 
     avgy = np.mean(ys,axis=0)
-    stdy = np.std(ys,axis=0)
+    stdy = np.std(ys,axis=0)/np.sqrt(N_runs)
 
     """generate expected frequencies"""
 
@@ -460,7 +460,7 @@ def random_system_averager(NR,Nt,m,a=1.2):
             ys[i] = np.hstack((ys[i], np.zeros((diff,))))
 
     avgy = np.mean(ys, axis=0)
-    stdy = np.std(ys, axis=0)
+    stdy = np.std(ys, axis=0)/np.sqrt(NR)
 
     maxes = np.array(maxes)
 
@@ -537,9 +537,18 @@ def hybrid_system_averager(NR,NT,m,r,scale,m_init = None):
 
     return maxx, avgy, avgy_std, maxkavg, maxk_std,fbins
 
-
-
-    
+"""
+m = 3
+r = 1
+model = generate_fully_connected(10)
+model.hybrid_time_evul(60000,m,r)
+kl = model.edge_list_gen()
+x,y,bins = logbin(kl,actual_zeros=True)
+plt.plot(x,y)
+plt.plot(x,hybrid_distribution(x,m,r))
+plt.xscale('log')
+plt.yscale('log')
+plt.show()"""
 
 
 

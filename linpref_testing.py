@@ -16,9 +16,9 @@ and we perform a t-test.
 
 tfig, tax = plt.subplots()
 m = 3
-Nt = 60000
+Nt = 40000
 
-cutoff = 55
+cutoff = 200
 val, xt, kta, kto, xw, kwa, kwo = tallwide_t_test(10,Nt,m,cutoff=cutoff,tall_num=2*m)
 print('The approximate bin-wise p-values are: ', val)
 
@@ -26,10 +26,10 @@ tax.errorbar(xt,kta,ls='None',color='green',marker='x',yerr=kto,capsize = 3,labe
 tax.errorbar(xw,kwa,ls='None',color='red',marker='x',yerr=kwo,capsize = 3,label='Initially wide network, m')
 tax.set_yscale('log')
 tax.set_xscale('log')
-tax.axvline(cutoff,ls='--',label='Cutoff k')
+tax.axvline(cutoff,ls='--',label='Maximum considered degree')
 tax.grid()
 tax.legend()
-tax.set_xlabel('k')
+tax.set_xlabel(r'$k$')
 tax.set_ylabel('Normalized frequencies')
 
 """
