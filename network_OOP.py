@@ -240,16 +240,22 @@ def preferential_test(N_runs,N_time,m,a=1.2,cutoff = False,axplot = plt,init='wi
     print('Degrees of freedom: ', df)
 
     axplot.scatter(rx,expected_freq,color='green',
-                   label='Predicted event frequencies for m= %.0f, T= %.0f, %.0f realizations' %(m,N_runs,N_runs),s=25)
+                   label='Predicted event frequencies for m= %.0f, T= %.0f, %.0f realizations' %(m,N_time,N_runs),s=25)
     axplot.errorbar(rx,mean_event_freq,color='red',
                     label='Measured event frequencies',ls='None',yerr=mean_event_seom,lw=1.2,
                     marker='x',capsize=3)
-    axplot.plot(rx,2*m*(m+1)/(rx*(rx+1)*(rx+2)),
+
+    yt = 2*m*(m+1)/(rx*(rx+1)*(rx+2))
+    yt[rx <m] = 0
+    axplot.plot(rx,yt,
                 label='Predicted probability extended to continuous domain, m=%.0f' %(m),color='orange',
                 lw=1.2)
 
     axplot.set_yscale('log')
     axplot.set_xscale('log')
+
+    axplot.set_ylabel('Normalized mean event frequencies')
+    axplot.set_xlabel(r'$k$')
 
     axplot.grid()
     axplot.legend()
@@ -426,12 +432,12 @@ def random_p_tester(N_runs,NT,m,axplot,a=1, cutoff = np.inf):
 
     axplot.set_xlabel('k')
     axplot.set_ylabel('Normalized event frequency')
-    axplot.set_yscale('log')
-    axplot.set_xscale('log')
+
 
     axplot.scatter(lx,theoretical,s=20,color='green',label='Theoretical event'
                 ' frequencies for T = %.0f and m = %.0f'%(NT,m),zorder = 20)
-
+    if cutoff!=np.inf:
+        axplot.axvline(cutoff,color='blue',ls='--')
     axplot.grid()
     axplot.legend()
 

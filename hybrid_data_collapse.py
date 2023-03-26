@@ -1,8 +1,8 @@
 from network_OOP import *
 
 
-NR = 2
-NT = 10000
+NR = 5
+NT = 20000
 m = np.array([3**i for i in range(1,4)])
 r = (m/3).astype('int64')
 scale = 1.2
@@ -17,10 +17,14 @@ for i in range(len(m)):
     lax.errorbar(m[i],maxkavg,yerr=maxk_std,capsize=5,ls='None',color=(0.5,1-i/len(m),i/len(m)),
                  label='Maximum detected mean degree for existing vertices model, m=%.0f' %m[i],marker='x')
     nax.errorbar(maxx,avgy,yerr=avgy_std,capsize=5,ls='None',marker='x',
-                 label='Existing vertices degree distribution, m = %.0f'%m[i])
-    hax.errorbar(maxx/maxkavg,avgy/hybrid_distribution(maxx,m[i],r[i]),yerr = maxk_std/normalize(hybrid_distribution(maxx,m[i],r[i])),
-                 xerr=maxk_std/maxkavg**2,ls='None', marker='x',
-                 label='Data collapsed, existing vertices degree distribution, m = %.0f'%m[i])
+                 label='Measured existing vertices degree distribution, m = %.0f, r = %.0f'%(m[i],r[i]))
+    plotx = np.linspace(r[i],maxx.max(),10000)
+    nax.plot(plotx,hybrid_distribution(plotx,m[i],r[i]),lw=2,
+             label='Theoretical distribution for m = %.0f and r = %-0f'%(m[i],r[i]),ls='--')
+
+    hax.errorbar(maxx/maxkavg,avgy/hybrid_distribution(maxx,m[i],r[i]),yerr = maxk_std/hybrid_distribution(maxx,m[i],r[i]),
+                 xerr=maxk_std/maxkavg**2,ls='None', marker='x',capsize = 5,
+                 label='Data collapse, existing vertices degree distribution, m = %.0f'%m[i])
 
 lax.set_yscale('log')
 lax.set_xscale('log')
@@ -40,7 +44,7 @@ nax.set_yscale('log')
 nax.set_xscale('log')
 nax.grid()
 nax.legend()
-nax.set_ylabel(r"$P(k)$")
+nax.set_ylabel("Normalized event frequencies")
 nax.set_xlabel(r"$k$")
 
 plt.show()

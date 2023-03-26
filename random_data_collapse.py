@@ -5,8 +5,8 @@ kfig, kax = plt.subplots()
 cfig, cax = plt.subplots()
 
 
-m = 5
-N_runs = 10
+m = 4
+N_runs = 20
 N_t = 1000*np.array([2**i for i in range(6)])
 
 maxfound = []
@@ -46,4 +46,7 @@ kax.set_ylabel(r'$k_1$')
 kax.set_xlabel('T')
 kax.set_yscale('log')
 kax.set_xscale('log')
+chi2_sum = np.sum(((maxfound-random_sum_maximum_degree(N_t,m))/maxfound_std)**2)
+chi2_int = np.sum(((maxfound-random_int_maximum_degree(N_t,m))/maxfound_std)**2)
+print(chi2_sum,print(chi2_int))
 plt.show()
