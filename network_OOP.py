@@ -264,6 +264,33 @@ def preferential_test(N_runs,N_time,m,a=1.2,cutoff = False,axplot = plt,init='wi
 
     return P_value
 
+
+def generate_ER(N,E):
+
+    model = generate_empty(N)
+    status = True
+    count = 0
+    connections = []
+    while status:
+
+        indices = np.arange(0,N,1,dtype='int')
+        to_connect = np.random.choice(indices,size=2,replace=False)
+        locset = set(to_connect.tolist())
+        if locset not in connections:
+            connections.append(locset)
+            count = count + 1
+        if count == E:
+            status = False
+
+    to_connect = [list(i) for i in connections]
+
+    for j in to_connect:
+        model.estabilish_connection(j[0],j[1])
+
+    return model
+
+
+
 def system_averager(N_runs, N_time, m, scale = 1.2):
     k1 = []
     ys = []

@@ -1,9 +1,9 @@
 from network_OOP import *
 
 
-NR = 5
-NT = 20000
-m = np.array([3**i for i in range(1,4)])
+NR = 10
+NT = 30000
+m = np.array([3**i for i in range(1,3)])
 r = (m/3).astype('int64')
 scale = 1.2
 
@@ -11,19 +11,22 @@ hfig, hax = plt.subplots()
 lfig, lax = plt.subplots()
 nfig, nax = plt.subplots()
 
+def color(i):
+
+    return (0.2,1-i/len(m),i/len(m))
 
 for i in range(len(m)):
     maxx, avgy, avgy_std, maxkavg, maxk_std, fbins = hybrid_system_averager(NR,NT,m[i],r[i],scale)
-    lax.errorbar(m[i],maxkavg,yerr=maxk_std,capsize=5,ls='None',color=(0.5,1-i/len(m),i/len(m)),
+    lax.errorbar(m[i],maxkavg,yerr=maxk_std,capsize=5,ls='None',color=color(i),
                  label='Maximum detected mean degree for existing vertices model, m=%.0f' %m[i],marker='x')
-    nax.errorbar(maxx,avgy,yerr=avgy_std,capsize=5,ls='None',marker='x',
+    nax.errorbar(maxx,avgy,yerr=avgy_std,capsize=5,ls='None',marker='x',color=color(i),
                  label='Measured existing vertices degree distribution, m = %.0f, r = %.0f'%(m[i],r[i]))
     plotx = np.linspace(r[i],maxx.max(),10000)
-    nax.plot(plotx,hybrid_distribution(plotx,m[i],r[i]),lw=2,
-             label='Theoretical distribution for m = %.0f and r = %-0f'%(m[i],r[i]),ls='--')
+    nax.plot(plotx,hybrid_distribution(plotx,m[i],r[i]),lw=2,color=color(i),
+             label='Theoretical distribution for m = %.0f and r = %.0f'%(m[i],r[i]),ls='--')
 
-    hax.errorbar(maxx/maxkavg,avgy/hybrid_distribution(maxx,m[i],r[i]),yerr = maxk_std/hybrid_distribution(maxx,m[i],r[i]),
-                 xerr=maxk_std/maxkavg**2,ls='None', marker='x',capsize = 5,
+    hax.errorbar(maxx/maxkavg,avgy/hybrid_distribution(maxx,m[i],r[i]),yerr = avgy_std/hybrid_distribution(maxx,m[i],r[i]),
+                 xerr=maxk_std/maxkavg**2,ls='None', marker='x',capsize = 5, color=color(i),
                  label='Data collapse, existing vertices degree distribution, m = %.0f'%m[i])
 
 lax.set_yscale('log')
